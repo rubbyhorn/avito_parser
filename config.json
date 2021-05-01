@@ -1,0 +1,13 @@
+{
+  "sites":[
+    {
+      "name": "avito rossiya",
+      "url": "https://www.avito.ru/rossiya?q={}",
+      "queries": [
+          "voodoo 2",
+          "asus p5q",
+          "query3"
+      ]
+    }
+  ]
+}
