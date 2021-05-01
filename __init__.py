@@ -1,9 +1,11 @@
-import asyncio
 import json
-import scrapy
-import scrapy.crawler
+import requests
+import traceback
+from urllib.parse import urlparse, urlunparse
 
-headers = {
+DEBUG = True
+
+HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/12.0",
     "Accept-Language": "en-US",
     "Accept-Encoding": "gzip, deflate",
@@ -12,27 +14,7 @@ headers = {
 }
 
 
-class MySpider(scrapy.Spider):
-    name = 'myspider'
-
-    custom_settings = {
-        'SOME_SETTING': 'some value',
-    }
-
-    def __init__(self, url, queries):
-        self.url = url
-        self.queries = queries
-
-    def start_requests(self):
-        return [scrapy.FormRequest(self.url.format(query), method="GET", headers=headers,
-                                   callback=self.logged_in) for query in self.queries]
-
-    def logged_in(self, response):
-        with open(str(response.url)[-3:]+'html', 'wt') as file:
-            file.write(str(response.body))
-
-
-def parce_config(file='config.json'):
+def parse_config(file: str = 'config.json') -> list:
     config = {}
     try:
         with open(file, 'rt') as config:
@@ -45,7 +27,7 @@ def parce_config(file='config.json'):
                       .format(str=e.lineno, col=e.colno))
                 exit()
             except KeyError:
-                print('Ашибка в конфиге. Не найден раздел "queries"')
+                print('Ашибка в конфиге. Не найден раздел "sites"')
                 exit()
     except FileNotFoundError:
         print('Конфиг не найден. config.json должен находиться в той-же папке, что и __init__.py')
@@ -53,15 +35,41 @@ def parce_config(file='config.json'):
     return config
 
 
-async def main():
-    config = parce_config()
-    process = scrapy.crawler.CrawlerProcess()
-    config = config[0]
-    process.crawl(MySpider, config["url"], config["queries"])
-    process.start()
-    print("adas\n"*10)
+def get_page(url: str, query: str) -> str:
+    response = requests.get(url.format(query),
+                            headers=HEADERS)
+    if response.status_code != requests.codes.OK:
+        raise requests.exceptions.RequestException
+    response.encoding = 'utf-8'
+    return response.text
+
+
+def main():
+    sites = parse_config()
+    try:
+        for site in sites:
+            for query in site["queries"]:
+                try:
+                    url = site["url"]
+                    try:
+                        page = get_page(url, query)
+                    except requests.exceptions.RequestException as e:
+                        print("Ашибка HTTP. Чет с сетью.\n{}".format(e))
+                        raise e
+                    filename = "_".join((urlparse(url).netloc.replace(".", "_"),
+                                         query.replace(" ", "_"))) + '.html'
+
+                    with open(filename, "wb")as file:
+                        file.write(bytes(page, encoding='utf-8'))
+                except BaseException as e:
+                    print("Ошибка при загрузке.")
+                    if DEBUG:
+                        traceback.print_exc()
+    except KeyError as e:
+        print('Ашибка в конфиге. Неизвестный ключ {}.'.format(e))
+
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
 else:
-    asyncio.run(main())
+    main()
