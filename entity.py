@@ -1,5 +1,10 @@
 import bs4.element
 from urllib.parse import urljoin
+from downloader import get_page
+import requests
+import traceback
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 
 class Entity:
@@ -50,6 +55,9 @@ class Entity:
         except:
             self.geo = None
 
+    def get_tuple(self):
+        return self.id, self.url, self.imgUrl, self.title, self.price, self.priceCurrency, self.lifeTime, self.geo
+
     def __str__(self):
         return "id: {id}\n" \
                "url: {url}\n" \
@@ -66,3 +74,29 @@ class Entity:
                        price=self.price+" "+self.priceCurrency,
                        lifeTime=self.lifeTime,
                        geo=self.geo)
+
+
+def get_new_data(config):
+    result = []
+    try:
+        for query in config["queries"]:
+            try:
+                url = config["url"]
+                domain = '{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url))
+                try:
+                    page = get_page(url, query)
+                except requests.exceptions.RequestException as e:
+                    print("Ашибка HTTP. Чет с сетью.\n{}".format(e))
+                    raise e
+                soup = BeautifulSoup(page, "lxml")
+
+                entities = map(lambda x: Entity(domain, x),
+                               soup.select('div[data-marker="catalog-serp"] div[data-marker="item"]'))
+                result.append(list(entities))
+            except BaseException:
+                print("Ошибка при загрузке.")
+                traceback.print_exc()
+    except KeyError as e:
+        print('Ашибка в конфиге. Неизвестный ключ {}.'.format(e))
+
+    return result

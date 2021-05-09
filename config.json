@@ -1,13 +1,9 @@
 {
-  "sites":[
-    {
-      "name": "avito rossiya",
-      "url": "https://www.avito.ru/rossiya?q={}",
-      "queries": [
-          "voodoo 2",
-          "asus p5q",
-          "query3"
-      ]
-    }
+  "token": "1645136824:AAFbODOjntDM7m-I6NLvdO2JPmwY5TGkNiQ",
+  "url": "https://www.avito.ru/rossiya?q={}",
+  "queries": [
+      "voodoo 2",
+      "asus p5q",
+      "query3"
   ]
 }
